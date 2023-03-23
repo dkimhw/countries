@@ -4,31 +4,42 @@
 const btn = document.querySelector('.btn-country');
 const countriesContainer = document.querySelector('.countries');
 
-const getCountryData = function (country) {
-  const request = new XMLHttpRequest();
-  request.open('GET', `https://restcountries.com/v2/name/${country}`);
-  request.send();
+function renderCountry(data, className='') {
+  let currency = Object.values(data.currencies);
+  let lang = Object.values(data.languages);
 
-  request.addEventListener('load', function() {
-    const [data] = JSON.parse(this.responseText);
-    console.log(data);
-    const html = `
-      <article class="country">
-        <img class="country__img" src="${data.flag}" />
-        <div class="country__data">
-          <h3 class="country__name">${data.name}</h3>
-          <h4 class="country__region">${data.region} </h4>
-          <p class="country__row"><span>👫</span>${(Number(data.population) / 1000000).toFixed(1)} million</p>
-          <p class="country__row"><span>🗣️</span>${data.languages[0]['name']}</p>
-          <p class="country__row"><span>💰</span>${data.currencies[0]['name']}</p>
-        </div>
-      </article>
-    `;
+  console.log("languages: ", data.languages);
+  const html = `
+    <article class="country ${className}">
+      <img class="country__img" src="${data.flags.svg}" />
+      <div class="country__data">
+        <h3 class="country__name">${data.name?.common}</h3>
+        <h4 class="country__region">${data.region} </h4>
+        <p class="country__row"><span>👫</span>${(Number(data.population) / 1000000).toFixed(1)} million</p>
+        <p class="country__row"><span>💰</span>${currency[0].name}</p>
+        <p class="country__row"><span>🗣️</span>${lang ? lang[0] : ''}</p>
+      </div>
+    </article>
+  `;
 
-    countriesContainer.insertAdjacentHTML('beforeend', html);
-    countriesContainer.style.opacity = 1;
-  });
+  countriesContainer.insertAdjacentHTML('beforeend', html);
+  countriesContainer.style.opacity = 1;
 }
 
-getCountryData('portugal');
-getCountryData('usa')
+const getCountryData = function (country) {
+  fetch(`https://restcountries.com/v3.1/name/${country}`)
+    // json() method also returns a promise which is why we need a new "then" or make this an async function)
+    // json() converts the data in body to a json format data we can work with
+    .then((response) => response.json())
+    .then((data) => {
+      renderCountry(data[0]);
+      const neighbor = data[0].borders?.[0];
+      return fetch(`https://restcountries.com/v3.1/alpha/${neighbor}`)
+    })
+    .then((response) => response.json())
+    .then((data) => {
+      renderCountry(data[0], 'neighbour');
+    });
+};
+
+getCountryData('spain')
